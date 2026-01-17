@@ -66,21 +66,21 @@ export function ItemRow({ item, onPin, onTask, onIgnore }: ItemRowProps) {
       className={`item-row group ${expanded ? 'dark:bg-slate-800/40 bg-slate-100/80 lg:bg-inherit' : ''}`}
       onClick={() => setExpanded((prev) => !prev)}
     >
-      <div className="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center text-slate-400 flex-shrink-0">
+      <div className="w-8 h-8 rounded-lg dark:bg-slate-800/50 bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
         {getTypeIcon()}
       </div>
       
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2">
           {item.title && (
-            <p className={`text-sm font-medium text-slate-200 ${expanded ? '' : 'truncate'}`}>
+            <p className={`text-sm font-medium text-slate-800 dark:text-slate-200 ${expanded ? '' : 'truncate'}`}>
               {item.title}
             </p>
           )}
           <ChevronRightIcon className={`w-3.5 h-3.5 mt-0.5 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </div>
         {item.content && (
-          <p className={`text-sm text-slate-400 ${expanded ? 'whitespace-pre-line' : 'line-clamp-2'}`}>
+          <p className={`text-sm text-slate-600 dark:text-slate-400 ${expanded ? 'whitespace-pre-line' : 'line-clamp-2'}`}>
             {item.content}
           </p>
         )}
@@ -91,12 +91,12 @@ export function ItemRow({ item, onPin, onTask, onIgnore }: ItemRowProps) {
         {expanded && (
           <div className="mt-2 space-y-1">
             {detailLines.map((line) => (
-              <p key={line} className="text-xs text-slate-400">
+              <p key={line} className="text-xs text-slate-600 dark:text-slate-400">
                 {line}
               </p>
             ))}
             {item.digest && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Summary: {item.digest}
               </p>
             )}
@@ -112,7 +112,7 @@ export function ItemRow({ item, onPin, onTask, onIgnore }: ItemRowProps) {
             className={`p-1.5 rounded-lg transition-colors ${
               item.status.pinned
                 ? 'bg-brand-600/20 text-brand-400'
-                : 'hover:bg-slate-700/50 text-slate-500 hover:text-slate-300'
+                : 'dark:hover:bg-slate-700/50 hover:bg-slate-200 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700'
             }`}
             title={item.status.pinned ? 'Unpin' : 'Pin'}
           >
@@ -125,7 +125,7 @@ export function ItemRow({ item, onPin, onTask, onIgnore }: ItemRowProps) {
             className={`p-1.5 rounded-lg transition-colors ${
               item.status.tasked
                 ? 'bg-green-600/20 text-green-400'
-                : 'hover:bg-slate-700/50 text-slate-500 hover:text-slate-300'
+                : 'dark:hover:bg-slate-700/50 hover:bg-slate-200 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700'
             }`}
             title="Make task"
           >
@@ -135,7 +135,7 @@ export function ItemRow({ item, onPin, onTask, onIgnore }: ItemRowProps) {
         {onIgnore && (
           <button
             onClick={(e) => { e.stopPropagation(); onIgnore(); }}
-            className="p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-500 hover:text-slate-300 transition-colors"
+            className="p-1.5 rounded-lg dark:hover:bg-slate-700/50 hover:bg-slate-200 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700 transition-colors"
             title="Ignore"
           >
             <IgnoreIcon className="w-4 h-4" />

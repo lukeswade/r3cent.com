@@ -129,12 +129,12 @@ function ConnectionCard({
     <div className="channel-card p-4">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 dark:bg-slate-800 bg-slate-100 rounded-xl flex items-center justify-center">
             {icon}
           </div>
           <div>
-            <h3 className="font-semibold text-slate-200">{name}</h3>
-            <p className="text-sm text-slate-400">{description}</p>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200">{name}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
           </div>
         </div>
         

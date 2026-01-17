@@ -168,11 +168,11 @@ function MessageBubble({
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+        className={`max-w-[92%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${
           isUser
             ? 'bg-brand-600 text-white'
-            : 'bg-slate-800/50 text-slate-200'
-        }`}
+            : 'dark:bg-slate-800/50 bg-slate-100 text-slate-700 dark:text-slate-200'
+        } text-sm leading-relaxed break-words`}
       >
         <p className="whitespace-pre-wrap">{message.text}</p>
         
@@ -194,7 +194,7 @@ function MessageBubble({
           <div className="mt-3 pt-3 border-t border-slate-700/50">
             <button
               onClick={() => setShowSources(!showSources)}
-              className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-300 flex items-center gap-1"
             >
               <span>{message.sources.length} sources</span>
               <ChevronIcon className={`w-3 h-3 transition-transform ${showSources ? 'rotate-180' : ''}`} />
@@ -203,7 +203,7 @@ function MessageBubble({
             {showSources && (
               <ul className="mt-2 space-y-1">
                 {message.sources.map((source) => (
-                  <li key={source.itemId} className="text-xs text-slate-400">
+                  <li key={source.itemId} className="text-xs text-slate-500 dark:text-slate-400">
                     • {source.type}: {source.reason || 'Referenced'}
                   </li>
                 ))}
