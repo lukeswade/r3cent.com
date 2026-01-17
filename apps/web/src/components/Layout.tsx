@@ -54,7 +54,7 @@ export function Layout() {
       
       {/* Main content */}
       <main className={`flex-1 pb-20 lg:pb-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
-        <div className="max-w-6xl mx-auto w-full pt-safe pt-3 lg:pt-0">
+        <div className="max-w-6xl mx-auto w-full pt-safe pt-5 lg:pt-0">
           <Outlet />
         </div>
       </main>
