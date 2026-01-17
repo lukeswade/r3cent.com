@@ -111,6 +111,23 @@
   html.light .btn-ghost {
     @apply hover:bg-slate-100 text-slate-500 hover:text-slate-700 px-3 py-2 rounded-xl transition-colors;
   }
+
+  .page-header {
+    @apply pt-6 pb-4;
+    padding-top: calc(1.5rem + env(safe-area-inset-top));
+  }
+
+  .page-shell {
+    @apply mx-auto w-full max-w-6xl;
+  }
+
+  html.dark .section-card {
+    @apply bg-slate-900/40 border border-slate-800/40 rounded-2xl;
+  }
+
+  html.light .section-card {
+    @apply bg-white border border-slate-200 rounded-2xl shadow-sm;
+  }
   
   /* Recording button */
   .btn-record {

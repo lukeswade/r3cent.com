@@ -85,6 +85,8 @@ askRoutes.post('/chat', async (c) => {
   if (!body.message?.trim()) {
     return c.json({ error: 'Message is required' }, 400);
   }
+
+  const chatPrompt = `You are r3cent, a helpful assistant. Keep responses concise and actionable. Ask a clarifying question if needed.`;
   
   try {
     const response = await fetch(
@@ -96,12 +98,13 @@ askRoutes.post('/chat', async (c) => {
           contents: [
             {
               role: 'user',
-              parts: [{ text: body.message }]
+              parts: [{ text: `${chatPrompt}\n\nUser: ${body.message}` }]
             }
           ],
           generationConfig: {
             maxOutputTokens: 1024,
-            temperature: 0.7,
+            temperature: 0.5,
+            topP: 0.9,
           },
         }),
       }
@@ -192,16 +195,17 @@ async function retrieveRelevantItems(
   userId: string,
   query: string
 ): Promise<RetrievedItem[]> {
-  const queryLower = query.toLowerCase();
+  const normalizedQuery = normalizeQuery(query);
+  const keywords = extractKeywords(normalizedQuery);
   
   // Parse intent from query
-  const wantsRecent = /recent|latest|last|new|summarize|summary/i.test(query);
-  const wantsThoughts = /thought|voice|said|spoke|capture/i.test(query);
-  const wantsScrawls = /scrawl|note|wrote|typed|write/i.test(query);
-  const wantsEmail = /email|mail|message|inbox/i.test(query);
-  const wantsCalendar = /calendar|event|meeting|schedule|appointment/i.test(query);
-  const wantsTunes = /music|song|listen|tune|track|playing|spotify/i.test(query);
-  const wantsAll = /everything|all|activity|overview|what.*been/i.test(query);
+  const wantsRecent = /recent|latest|last|new|summarize|summary/i.test(normalizedQuery);
+  const wantsThoughts = /thought|voice|said|spoke|capture/i.test(normalizedQuery);
+  const wantsScrawls = /scrawl|note|wrote|typed|write/i.test(normalizedQuery);
+  const wantsEmail = /email|mail|message|inbox/i.test(normalizedQuery);
+  const wantsCalendar = /calendar|event|meeting|schedule|appointment/i.test(normalizedQuery);
+  const wantsTunes = /music|song|listen|tune|track|playing|spotify/i.test(normalizedQuery);
+  const wantsAll = /everything|all|activity|overview|what.*been/i.test(normalizedQuery);
   
   // Build type filter
   const types: ItemType[] = [];
@@ -222,43 +226,18 @@ async function retrieveRelevantItems(
     );
   }
   
-  // Build SQL query - NOTE: json_extract returns 0/1 for boolean, not true/false
   const typeplaceholders = types.map(() => '?').join(',');
-  let sql = `
+  const sql = `
     SELECT id, type, ts, title, content, meta
     FROM items
     WHERE user_id = ?
     AND type IN (${typeplaceholders})
     AND json_extract(status, '$.deleted') = 0
+    ORDER BY ts DESC
+    LIMIT ?
   `;
-  const params: (string | number)[] = [userId, ...types];
-  
-  // Only do keyword search for specific content queries (not intent-based)
-  // Skip keywords for general queries like "summarize my emails"
-  const isIntentQuery = wantsRecent || wantsThoughts || wantsScrawls || wantsEmail || wantsCalendar || wantsTunes || wantsAll;
-  
-  if (!isIntentQuery) {
-    // Extract keywords for content search
-    const stopWords = new Set(['what', 'is', 'are', 'the', 'my', 'i', 'have', 'has', 'been', 'a', 'an', 'to', 'for', 'of', 'in', 'on', 'with', 'about', 'tell', 'me', 'show', 'find', 'get', 'summarize', 'summary', 'recent', 'latest']);
-    const keywords = queryLower
-      .split(/\s+/)
-      .filter((w) => w.length > 2 && !stopWords.has(w))
-      .slice(0, 5);
-    
-    // Add keyword search if we have keywords
-    if (keywords.length > 0) {
-      const keywordConditions = keywords.map(() => 
-        "(LOWER(title) LIKE ? OR LOWER(content) LIKE ?)"
-      ).join(' OR ');
-      sql += ` AND (${keywordConditions})`;
-      for (const kw of keywords) {
-        params.push(`%${kw}%`, `%${kw}%`);
-      }
-    }
-  }
-  
-  // Order by recency and limit
-  sql += ' ORDER BY ts DESC LIMIT 10';
+  const fetchLimit = wantsRecent || wantsAll ? 60 : 40;
+  const params: (string | number)[] = [userId, ...types, fetchLimit];
   
   const result = await db.prepare(sql)
     .bind(...params)
@@ -271,7 +250,7 @@ async function retrieveRelevantItems(
       meta: string;
     }>();
   
-  return (result.results || []).map((row) => ({
+  const items = (result.results || []).map((row) => ({
     id: row.id,
     type: row.type as ItemType,
     ts: row.ts,
@@ -279,6 +258,24 @@ async function retrieveRelevantItems(
     content: row.content,
     meta: JSON.parse(row.meta),
   }));
+
+  const scoredItems = items.map((item) => ({
+    item,
+    score: scoreItem(item, {
+      keywords,
+      wantsThoughts,
+      wantsScrawls,
+      wantsEmail,
+      wantsCalendar,
+      wantsTunes,
+      wantsRecent,
+    }),
+  }));
+
+  scoredItems.sort((a, b) => b.score - a.score);
+
+  const limit = keywords.length > 0 ? 12 : 10;
+  return scoredItems.slice(0, limit).map((entry) => entry.item);
 }
 
 // Helper: Generate answer using Gemini 2.0 Flash
@@ -289,22 +286,23 @@ async function generateAnswer(
   userName: string
 ): Promise<{ answer: string; sources: AskSource[]; followups: string[] }> {
   // Build sources from items
+  const keywords = extractKeywords(normalizeQuery(query));
   const sources: AskSource[] = items.slice(0, 5).map((item) => ({
     itemId: item.id,
     type: item.type,
     ts: item.ts,
-    reason: 'Matched query context',
+    reason: buildSourceReason(item, keywords, query),
   }));
 
   // If no items found, return a helpful message
   if (items.length === 0) {
     return {
-      answer: "I couldn't find any relevant items in your recent activity. Try being more specific or check if you have data in the channels you're asking about.",
+      answer: "I couldn't find relevant items yet. Try being more specific, or connect email, calendar, or Spotify to give me more context.",
       sources: [],
       followups: [
         "What have I captured recently?",
         "Show me my latest emails",
-        "What's on my calendar?",
+        "What's on my calendar this week?",
       ],
     };
   }
@@ -334,16 +332,7 @@ async function generateAnswer(
     return `[${i + 1}] ${typeLabel} (${date})${details ? ` - ${details}` : ''}\n${content}`;
   }).join('\n\n');
 
-  const systemPrompt = `You are r3cent, a helpful personal assistant that helps users understand their recent digital activity. You have access to the user's thoughts, notes, emails, calendar events, and music listening history.
-
-Guidelines:
-- Be conversational and friendly, but concise
-- Reference specific items from the context when relevant
-- Use [1], [2] etc. to cite sources
-- If asked about tasks or follow-ups, identify actionable items
-- Suggest relevant follow-up questions
-- Never make up information not in the context
-- Keep responses under 200 words unless more detail is requested`;
+  const systemPrompt = buildSystemPrompt(query);
 
   const userPrompt = `User: ${userName}
 Query: ${query}
@@ -373,8 +362,9 @@ Please answer the user's question based on the above context.`;
             }
           ],
           generationConfig: {
-            maxOutputTokens: 320,
-            temperature: 0.7,
+            maxOutputTokens: 360,
+            temperature: 0.4,
+            topP: 0.9,
           },
         }),
         signal: controller.signal,
@@ -431,7 +421,6 @@ Please answer the user's question based on the above context.`;
 // Helper: Generate contextual follow-up suggestions
 function generateFollowups(query: string, items: RetrievedItem[]): string[] {
   const followups: string[] = [];
-  const queryLower = query.toLowerCase();
   
   // Type-based suggestions
   const types = new Set(items.map(i => i.type.split('.')[0]));
@@ -459,4 +448,161 @@ function generateFollowups(query: string, items: RetrievedItem[]): string[] {
   }
   
   return followups.slice(0, 3);
+}
+
+function normalizeQuery(query: string): string {
+  return query.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function extractKeywords(query: string): string[] {
+  const stopWords = new Set([
+    'what',
+    'is',
+    'are',
+    'the',
+    'my',
+    'i',
+    'have',
+    'has',
+    'been',
+    'a',
+    'an',
+    'to',
+    'for',
+    'of',
+    'in',
+    'on',
+    'with',
+    'about',
+    'tell',
+    'me',
+    'show',
+    'find',
+    'get',
+    'summarize',
+    'summary',
+    'recent',
+    'latest',
+    'last',
+    'new',
+    'this',
+    'that',
+  ]);
+
+  return query
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !stopWords.has(word))
+    .slice(0, 6);
+}
+
+function scoreItem(
+  item: RetrievedItem,
+  context: {
+    keywords: string[];
+    wantsThoughts: boolean;
+    wantsScrawls: boolean;
+    wantsEmail: boolean;
+    wantsCalendar: boolean;
+    wantsTunes: boolean;
+    wantsRecent: boolean;
+  }
+): number {
+  const now = Date.now();
+  const ts = new Date(item.ts).getTime();
+  const ageDays = Math.max(0, (now - ts) / (1000 * 60 * 60 * 24));
+  const recencyScore = Math.max(0, 1 - ageDays / 30);
+
+  const meta = item.meta || {};
+  const metaText = [
+    meta.from,
+    meta.to,
+    meta.location,
+    meta.artist,
+    meta.album,
+    meta.contextType,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const text = `${item.title ?? ''} ${item.content ?? ''} ${metaText}`.toLowerCase();
+  const keywordHits = context.keywords.reduce((total, keyword) => (
+    text.includes(keyword) ? total + 1 : total
+  ), 0);
+
+  const type = item.type.toLowerCase();
+  const typeBonus =
+    (context.wantsThoughts && type.includes('thought')) ||
+    (context.wantsScrawls && type.includes('scrawl')) ||
+    (context.wantsEmail && type.includes('email')) ||
+    (context.wantsCalendar && type.includes('calendar')) ||
+    (context.wantsTunes && type.includes('tunes'))
+      ? 1.2
+      : 0;
+
+  const channelSignal =
+    (context.wantsEmail && (meta.from || meta.to)) ||
+    (context.wantsCalendar && (meta.location || meta.end)) ||
+    (context.wantsTunes && (meta.artist || meta.album || meta.contextType))
+      ? 0.6
+      : 0;
+
+  const recentBonus = context.wantsRecent ? 0.4 : 0;
+
+  return keywordHits * 2 + typeBonus + channelSignal + recencyScore + recentBonus;
+}
+
+function buildSourceReason(item: RetrievedItem, keywords: string[], query: string): string {
+  const lowered = `${item.title ?? ''} ${item.content ?? ''}`.toLowerCase();
+  const matchedKeyword = keywords.find((keyword) => lowered.includes(keyword));
+  if (matchedKeyword) {
+    return `Matches keyword "${matchedKeyword}"`;
+  }
+
+  if (/email|mail|message|inbox/i.test(query) && item.type.includes('email')) {
+    return 'Matches email intent';
+  }
+  if (/calendar|event|meeting|schedule|appointment/i.test(query) && item.type.includes('calendar')) {
+    return 'Matches calendar intent';
+  }
+  if (/thought|voice|said|spoke|capture/i.test(query) && item.type.includes('thought')) {
+    return 'Matches thoughts intent';
+  }
+  if (/scrawl|note|wrote|typed|write/i.test(query) && item.type.includes('scrawl')) {
+    return 'Matches notes intent';
+  }
+  if (/music|song|listen|tune|track|playing|spotify/i.test(query) && item.type.includes('tunes')) {
+    return 'Matches music intent';
+  }
+
+  return 'Recent activity';
+}
+
+function buildSystemPrompt(query: string): string {
+  const normalized = normalizeQuery(query);
+  const wordCount = normalized.split(' ').filter(Boolean).length;
+  const broadIntent = /summarize|summary|overview|recap|what.*been|anything new|recent/i.test(normalized);
+  const shouldUseStructured = broadIntent || wordCount >= 8;
+
+  if (shouldUseStructured) {
+    return `You are r3cent, a proactive personal assistant for a user's recent digital activity (thoughts, notes, emails, calendar events, and music).
+
+Guidelines:
+- Be crisp and helpful. Prioritize clarity over verbosity.
+- Only use information present in the context. Never invent details.
+- Cite sources using [1], [2], etc. for any specific claims.
+- If the question implies a task or follow-up, surface action items.
+- If key info is missing, say what's missing and ask a brief clarifying question.
+- Output format:
+  Answer: 2-5 sentences.
+  Key items: 2-4 bullets with citations.
+  Action items: bullets or "None."
+  Open questions: 1-2 bullets if needed.`;
+  }
+
+  return `You are r3cent, a concise assistant for a user's recent activity.
+
+Guidelines:
+- Answer in 2-3 sentences.
+- Cite sources using [1], [2] for specific claims.
+- If information is missing, ask a single clarifying question.`;
 }
