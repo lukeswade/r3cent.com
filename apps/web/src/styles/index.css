@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply min-h-screen;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Smooth scrolling */
+  * {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-600;
+  }
+}
+
+@layer components {
+  /* Channel card styles */
+  .channel-card {
+    @apply bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden;
+  }
+  
+  /* Item row styles */
+  .item-row {
+    @apply flex items-start gap-3 p-3 hover:bg-slate-800/30 transition-colors cursor-pointer;
+  }
+  
+  /* Button variants */
+  .btn-primary {
+    @apply bg-brand-600 hover:bg-brand-500 text-white font-medium px-4 py-2 rounded-xl transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2 rounded-xl transition-colors;
+  }
+  
+  .btn-ghost {
+    @apply hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 px-3 py-2 rounded-xl transition-colors;
+  }
+  
+  /* Recording button */
+  .btn-record {
+    @apply w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center transition-all;
+    @apply active:scale-95 shadow-lg shadow-red-600/30;
+  }
+  
+  .btn-record.recording {
+    @apply animate-recording bg-red-500;
+  }
+  
+  /* Bottom navigation */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800/50;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .nav-item {
+    @apply flex flex-col items-center gap-1 py-2 px-4 text-slate-500 transition-colors;
+  }
+  
+  .nav-item.active {
+    @apply text-brand-400;
+  }
+  
+  /* Input styles */
+  .input {
+    @apply w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3;
+    @apply text-slate-100 placeholder:text-slate-500;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500/50;
+  }
+  
+  /* Digest bar */
+  .digest-bar {
+    @apply text-sm text-slate-400 italic bg-slate-800/30 px-4 py-2 border-t border-slate-800/30;
+  }
+}
+
+@layer utilities {
+  /* Safe area padding */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  /* Glass effect */
+  .glass {
+    @apply bg-slate-900/50 backdrop-blur-lg;
+  }
+}

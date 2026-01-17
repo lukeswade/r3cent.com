@@ -1,0 +1,31 @@
+{
+  "name": "r3cent",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Recent - Your recency layer across trusted sources",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "preview": "turbo preview",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:migrate": "wrangler d1 migrations apply r3cent-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply r3cent-db",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.100.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "workers/*"
+  ]
+}

@@ -1,0 +1,19 @@
+# Development environment variables
+# Copy to .dev.vars and fill in values
+
+# 64-character hex string for token encryption
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+TOKEN_ENC_KEY=
+
+# Google OAuth (https://console.cloud.google.com/apis/credentials)
+# Scopes: gmail.readonly, calendar.readonly, userinfo.email, userinfo.profile
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Spotify OAuth (https://developer.spotify.com/dashboard)
+# Scopes: user-read-recently-played, user-read-email
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+
+# AI API Key (OpenAI or Google Gemini)
+AI_API_KEY=

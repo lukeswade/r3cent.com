@@ -1,0 +1,84 @@
+name = "r3cent-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Custom domain route
+routes = [
+  { pattern = "api.r3cent.com", custom_domain = true }
+]
+
+# ─────────────────────────────────────────────────────────────
+# D1 Database
+# ─────────────────────────────────────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "r3cent-db"
+database_id = "7db9cfae-f04c-4dd1-add2-94f28288a25b"
+migrations_dir = "../../infra/migrations"
+
+# ─────────────────────────────────────────────────────────────
+# KV Namespace (sessions/cache)
+# ─────────────────────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "KV"
+id = "2954f469aed14e3383956bc7f9ece4f2"
+
+# ─────────────────────────────────────────────────────────────
+# R2 Bucket (optional audio storage)
+# ─────────────────────────────────────────────────────────────
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "r3cent-audio"
+
+# ─────────────────────────────────────────────────────────────
+# Queues (async processing)
+# ─────────────────────────────────────────────────────────────
+# [[queues.producers]]
+# binding = "SYNC_QUEUE"
+# queue = "r3cent-sync"
+
+# [[queues.producers]]
+# binding = "ENRICH_QUEUE"
+# queue = "r3cent-enrich"
+
+# [[queues.consumers]]
+# queue = "r3cent-sync"
+# max_batch_size = 10
+# max_batch_timeout = 30
+
+# [[queues.consumers]]
+# queue = "r3cent-enrich"
+# max_batch_size = 10
+# max_batch_timeout = 30
+
+# ─────────────────────────────────────────────────────────────
+# Cron Triggers (sync jobs)
+# ─────────────────────────────────────────────────────────────
+# [triggers]
+# crons = ["*/15 * * * *"]
+
+# ─────────────────────────────────────────────────────────────
+# Secrets (set via `wrangler secret put`)
+# ─────────────────────────────────────────────────────────────
+# TOKEN_ENC_KEY - 32-byte encryption key for OAuth tokens
+# GOOGLE_CLIENT_ID
+# GOOGLE_CLIENT_SECRET
+# SPOTIFY_CLIENT_ID
+# SPOTIFY_CLIENT_SECRET
+# AI_API_KEY - for Gemini/OpenAI
+
+# ─────────────────────────────────────────────────────────────
+# Environment variables
+# ─────────────────────────────────────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+APP_URL = "https://r3cent.com"
+API_URL = "https://api.r3cent.com"
+
+# ─────────────────────────────────────────────────────────────
+# Production overrides
+# ─────────────────────────────────────────────────────────────
+[env.production]
+vars = { ENVIRONMENT = "production", APP_URL = "https://r3cent.com", API_URL = "https://api.r3cent.com" }
