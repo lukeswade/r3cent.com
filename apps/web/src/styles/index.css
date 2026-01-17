@@ -7,6 +7,18 @@
     -webkit-tap-highlight-color: transparent;
   }
   
+  /* Dark mode (default) */
+  html.dark {
+    @apply bg-slate-950 text-slate-100;
+    color-scheme: dark;
+  }
+  
+  /* Light mode */
+  html.light {
+    @apply bg-slate-50 text-slate-900;
+    color-scheme: light;
+  }
+  
   body {
     @apply min-h-screen;
     padding-bottom: env(safe-area-inset-bottom);
@@ -17,34 +29,62 @@
     scroll-behavior: smooth;
   }
   
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
+  /* Custom scrollbar - dark mode */
+  html.dark ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   
-  ::-webkit-scrollbar-track {
+  html.dark ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
   
-  ::-webkit-scrollbar-thumb {
+  html.dark ::-webkit-scrollbar-thumb {
     @apply bg-slate-700 rounded-full;
   }
   
-  ::-webkit-scrollbar-thumb:hover {
+  html.dark ::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-600;
+  }
+  
+  /* Custom scrollbar - light mode */
+  html.light ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  html.light ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  html.light ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+  
+  html.light ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
   }
 }
 
 @layer components {
-  /* Channel card styles */
-  .channel-card {
+  /* Channel card styles - dark mode */
+  html.dark .channel-card {
     @apply bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden;
   }
   
-  /* Item row styles */
-  .item-row {
+  /* Channel card styles - light mode */
+  html.light .channel-card {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200 overflow-hidden shadow-sm;
+  }
+  
+  /* Item row styles - dark mode */
+  html.dark .item-row {
     @apply flex items-start gap-3 p-3 hover:bg-slate-800/30 transition-colors cursor-pointer;
+  }
+  
+  /* Item row styles - light mode */
+  html.light .item-row {
+    @apply flex items-start gap-3 p-3 hover:bg-slate-100 transition-colors cursor-pointer;
   }
   
   /* Button variants */
@@ -52,12 +92,24 @@
     @apply bg-brand-600 hover:bg-brand-500 text-white font-medium px-4 py-2 rounded-xl transition-colors;
   }
   
-  .btn-secondary {
+  /* Secondary button - dark mode */
+  html.dark .btn-secondary {
     @apply bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2 rounded-xl transition-colors;
   }
   
-  .btn-ghost {
+  /* Secondary button - light mode */
+  html.light .btn-secondary {
+    @apply bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-xl transition-colors;
+  }
+  
+  /* Ghost button - dark mode */
+  html.dark .btn-ghost {
     @apply hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 px-3 py-2 rounded-xl transition-colors;
+  }
+  
+  /* Ghost button - light mode */
+  html.light .btn-ghost {
+    @apply hover:bg-slate-100 text-slate-500 hover:text-slate-700 px-3 py-2 rounded-xl transition-colors;
   }
   
   /* Recording button */
@@ -70,12 +122,19 @@
     @apply animate-recording bg-red-500;
   }
   
-  /* Bottom navigation */
-  .bottom-nav {
+  /* Bottom navigation - dark mode */
+  html.dark .bottom-nav {
     @apply fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800/50;
     padding-bottom: env(safe-area-inset-bottom);
   }
   
+  /* Bottom navigation - light mode */
+  html.light .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-200;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Nav item */
   .nav-item {
     @apply flex flex-col items-center gap-1 py-2 px-4 text-slate-500 transition-colors;
   }
@@ -84,16 +143,28 @@
     @apply text-brand-400;
   }
   
-  /* Input styles */
-  .input {
+  /* Input styles - dark mode */
+  html.dark .input {
     @apply w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3;
     @apply text-slate-100 placeholder:text-slate-500;
     @apply focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500/50;
   }
   
-  /* Digest bar */
-  .digest-bar {
+  /* Input styles - light mode */
+  html.light .input {
+    @apply w-full bg-white border border-slate-300 rounded-xl px-4 py-3;
+    @apply text-slate-900 placeholder:text-slate-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500;
+  }
+  
+  /* Digest bar - dark mode */
+  html.dark .digest-bar {
     @apply text-sm text-slate-400 italic bg-slate-800/30 px-4 py-2 border-t border-slate-800/30;
+  }
+  
+  /* Digest bar - light mode */
+  html.light .digest-bar {
+    @apply text-sm text-slate-500 italic bg-slate-50 px-4 py-2 border-t border-slate-200;
   }
 }
 

@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import type { ChannelBlock } from '@r3cent/shared';
 import { ItemRow } from './ItemRow';
 import { formatRelativeTime } from '@/lib/time';
+import { RefreshIcon } from './icons';
 
 interface ChannelCardProps {
   channel: string;
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   data: ChannelBlock;
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<void> | void;
   onViewAll?: () => void;
   onItemAction?: (itemId: string, action: 'pin' | 'task' | 'ignore') => void;
 }
@@ -21,26 +23,46 @@ export function ChannelCard({
   onViewAll,
   onItemAction,
 }: ChannelCardProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasContent = data.items.length > 0;
+  
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
   return (
     <div className="channel-card">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{icon}</span>
+        <div className="flex items-center gap-2.5">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+            hasContent 
+              ? 'bg-brand-500/20 text-brand-400 ring-1 ring-brand-500/30' 
+              : 'bg-slate-800/80 text-slate-500'
+          }`}>
+            {icon}
+          </div>
           <h2 className="font-semibold text-slate-200">{label}</h2>
         </div>
         
         <div className="flex items-center gap-2 text-xs text-slate-500">
           {data.lastSyncAt && (
-            <span>Updated {formatRelativeTime(data.lastSyncAt)}</span>
+            <span className="hidden sm:inline">Updated {formatRelativeTime(data.lastSyncAt)}</span>
           )}
           {onRefresh && (
             <button
-              onClick={onRefresh}
-              className="p-1 hover:bg-slate-700/50 rounded transition-colors"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50"
               title="Refresh"
             >
-              <RefreshIcon className="w-4 h-4" />
+              <RefreshIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           )}
         </div>
@@ -84,13 +106,5 @@ export function ChannelCard({
         </div>
       )}
     </div>
-  );
-}
-
-function RefreshIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
   );
 }

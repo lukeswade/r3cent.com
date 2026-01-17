@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useNowStore } from '@/lib/store';
 import { ChannelCard } from '@/components/ChannelCard';
 import { apiClient } from '@/lib/api';
+import { MicIcon, PenIcon, MailIcon, CalendarIcon, MusicIcon, SparklesIcon } from '@/components/icons';
 
-const CHANNELS: Array<{ key: 'thoughts' | 'scrawls' | 'email' | 'calendar' | 'tunes'; icon: string; label: string; refreshable?: boolean }> = [
-  { key: 'thoughts', icon: '🎙', label: 'Thoughts' },
-  { key: 'scrawls', icon: '✍️', label: 'Scrawls' },
-  { key: 'email', icon: '📨', label: 'Email', refreshable: true },
-  { key: 'calendar', icon: '📅', label: 'Calendar', refreshable: true },
-  { key: 'tunes', icon: '🎧', label: 'Tunes', refreshable: true },
+const CHANNELS: Array<{ key: 'thoughts' | 'scrawls' | 'email' | 'calendar' | 'tunes'; icon: React.ReactNode; label: string; refreshable?: boolean }> = [
+  { key: 'thoughts', icon: <MicIcon className="w-5 h-5" />, label: 'Thoughts' },
+  { key: 'scrawls', icon: <PenIcon className="w-5 h-5" />, label: 'Scrawls' },
+  { key: 'email', icon: <MailIcon className="w-5 h-5" />, label: 'Email', refreshable: true },
+  { key: 'calendar', icon: <CalendarIcon className="w-5 h-5" />, label: 'Calendar', refreshable: true },
+  { key: 'tunes', icon: <MusicIcon className="w-5 h-5" />, label: 'Tunes', refreshable: true },
 ];
 
 export function Now() {
@@ -25,7 +26,7 @@ export function Now() {
         tasked: action === 'task' ? true : undefined,
         ignored: action === 'ignore' ? true : undefined,
       });
-      fetchNow(); // Refresh to show updated state
+      fetchNow();
     } catch (err) {
       console.error('Item action failed:', err);
     }
@@ -51,31 +52,42 @@ export function Now() {
   }
   
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 lg:p-8">
       {/* Header */}
-      <header className="py-4">
-        <h1 className="text-2xl font-bold">Now</h1>
-        <p className="text-slate-400 text-sm">Your recent activity at a glance</p>
+      <header className="py-4 lg:py-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold">Now</h1>
+          <p className="text-slate-400 text-sm lg:text-base">Your recent activity at a glance</p>
+        </div>
+        <div className="hidden lg:flex items-center gap-2 text-slate-500 text-sm">
+          <span>Last updated: just now</span>
+        </div>
       </header>
       
-      {/* Channel cards */}
-      {data && CHANNELS.map(({ key, icon, label, refreshable }) => (
-        <ChannelCard
-          key={key}
-          channel={key}
-          icon={icon}
-          label={label}
-          data={data.channels[key]}
-          onRefresh={refreshable ? () => refreshChannel(key) : undefined}
-          onItemAction={handleItemAction}
-        />
-      ))}
+      {/* Channel grid - responsive layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+        {data && CHANNELS.map(({ key, icon, label, refreshable }) => (
+          <ChannelCard
+            key={key}
+            channel={key}
+            icon={icon}
+            label={label}
+            data={data.channels[key]}
+            onRefresh={refreshable ? () => refreshChannel(key) : undefined}
+            onItemAction={handleItemAction}
+          />
+        ))}
+      </div>
       
       {/* Empty state */}
       {data && Object.values(data.channels).every((c) => c.items.length === 0) && (
-        <div className="text-center py-12">
-          <p className="text-slate-400 mb-4">
-            No recent activity yet. Start capturing thoughts or connect your accounts!
+        <div className="text-center py-12 lg:py-20">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
+            <SparklesIcon className="w-8 h-8 text-brand-400" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">No recent activity yet</h3>
+          <p className="text-slate-400 mb-6 max-w-sm mx-auto">
+            Start capturing thoughts or connect your accounts to see your activity here.
           </p>
           <a href="/settings/connections" className="btn-primary">
             Connect accounts

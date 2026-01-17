@@ -15,25 +15,43 @@ export async function syncGmail(accessToken: string): Promise<EmailItem[]> {
   const emails: EmailItem[] = [];
   
   try {
-    // Fetch recent messages
-    const listResponse = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&q=newer_than:7d',
+    // Fetch recent received messages (INBOX)
+    const inboxResponse = await fetch(
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=newer_than:7d+in:inbox',
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     
-    if (!listResponse.ok) {
-      console.error('Gmail list failed:', await listResponse.text());
+    // Fetch recent sent messages
+    const sentResponse = await fetch(
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=newer_than:7d+in:sent',
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    
+    const inboxData = inboxResponse.ok 
+      ? await inboxResponse.json() as { messages?: { id: string }[] }
+      : { messages: [] };
+    
+    const sentData = sentResponse.ok 
+      ? await sentResponse.json() as { messages?: { id: string }[] }
+      : { messages: [] };
+    
+    // Combine and dedupe message IDs
+    const allMessageIds = new Set<string>();
+    const messages: { id: string }[] = [];
+    
+    for (const msg of [...(inboxData.messages || []), ...(sentData.messages || [])]) {
+      if (!allMessageIds.has(msg.id)) {
+        allMessageIds.add(msg.id);
+        messages.push(msg);
+      }
+    }
+    
+    if (messages.length === 0) {
       return emails;
     }
     
-    const listData = await listResponse.json() as { messages?: { id: string }[] };
-    
-    if (!listData.messages) {
-      return emails;
-    }
-    
-    // Fetch message details (limited to 5 for performance)
-    for (const msg of listData.messages.slice(0, 5)) {
+    // Fetch message details (limited to 10 for performance)
+    for (const msg of messages.slice(0, 10)) {
       try {
         const msgResponse = await fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`,

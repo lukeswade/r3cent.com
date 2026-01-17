@@ -4,6 +4,136 @@ import { createSession, destroySession } from '../middleware/auth';
 
 export const authRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+// ─────────────────────────────────────────────────────────────
+// Email/Password Auth
+// ─────────────────────────────────────────────────────────────
+
+// Hash password using Web Crypto API
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// POST /api/auth/register - Register with email/password
+authRoutes.post('/register', async (c) => {
+  const { email, password, displayName } = await c.req.json<{
+    email: string;
+    password: string;
+    displayName?: string;
+  }>();
+  
+  if (!email || !password) {
+    return c.json({ error: 'Email and password required', code: 'MISSING_FIELDS' }, 400);
+  }
+  
+  if (password.length < 8) {
+    return c.json({ error: 'Password must be at least 8 characters', code: 'WEAK_PASSWORD' }, 400);
+  }
+  
+  // Check if user exists
+  const existing = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?')
+    .bind(email.toLowerCase())
+    .first();
+  
+  if (existing) {
+    return c.json({ error: 'Email already registered', code: 'EMAIL_EXISTS' }, 409);
+  }
+  
+  // Create user
+  const userId = crypto.randomUUID();
+  const passwordHash = await hashPassword(password);
+  const now = new Date().toISOString();
+  
+  await c.env.DB.prepare(`
+    INSERT INTO users (id, email, display_name, password_hash, created_at, last_login_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `)
+    .bind(userId, email.toLowerCase(), displayName || email.split('@')[0], passwordHash, now, now)
+    .run();
+  
+  // Create session
+  const { sessionId, expiresAt } = await createSession(c.env.KV, userId);
+  
+  // Set cookie
+  c.header('Set-Cookie', `r3cent_session=${sessionId}; Path=/; Domain=.r3cent.com; HttpOnly; Secure; SameSite=Lax; Expires=${expiresAt.toUTCString()}`);
+  
+  return c.json({
+    user: { id: userId, email: email.toLowerCase(), displayName: displayName || email.split('@')[0] },
+  });
+});
+
+// POST /api/auth/login - Login with email/password
+authRoutes.post('/login', async (c) => {
+  const { email, password } = await c.req.json<{ email: string; password: string }>();
+  
+  if (!email || !password) {
+    return c.json({ error: 'Email and password required', code: 'MISSING_FIELDS' }, 400);
+  }
+  
+  // Find user
+  const user = await c.env.DB.prepare('SELECT id, email, display_name, password_hash FROM users WHERE email = ?')
+    .bind(email.toLowerCase())
+    .first<{ id: string; email: string; display_name: string; password_hash: string | null }>();
+  
+  if (!user) {
+    return c.json({ error: 'Invalid email or password', code: 'INVALID_CREDENTIALS' }, 401);
+  }
+  
+  if (!user.password_hash) {
+    return c.json({ error: 'Please use Google login for this account', code: 'NO_PASSWORD' }, 401);
+  }
+  
+  // Verify password
+  const passwordHash = await hashPassword(password);
+  if (passwordHash !== user.password_hash) {
+    return c.json({ error: 'Invalid email or password', code: 'INVALID_CREDENTIALS' }, 401);
+  }
+  
+  // Update last login
+  await c.env.DB.prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
+    .bind(new Date().toISOString(), user.id)
+    .run();
+  
+  // Create session
+  const { sessionId, expiresAt } = await createSession(c.env.KV, user.id);
+  
+  // Set cookie
+  c.header('Set-Cookie', `r3cent_session=${sessionId}; Path=/; Domain=.r3cent.com; HttpOnly; Secure; SameSite=Lax; Expires=${expiresAt.toUTCString()}`);
+  
+  return c.json({
+    user: { id: user.id, email: user.email, displayName: user.display_name },
+  });
+});
+
+// POST /api/auth/set-password - Set password for existing OAuth user
+authRoutes.post('/set-password', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+  }
+  
+  const { password } = await c.req.json<{ password: string }>();
+  
+  if (!password || password.length < 8) {
+    return c.json({ error: 'Password must be at least 8 characters', code: 'WEAK_PASSWORD' }, 400);
+  }
+  
+  const passwordHash = await hashPassword(password);
+  
+  await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+    .bind(passwordHash, user.id)
+    .run();
+  
+  return c.json({ success: true });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Token Exchange
+// ─────────────────────────────────────────────────────────────
+
 // POST /api/auth/exchange - Exchange token for session
 authRoutes.post('/exchange', async (c) => {
   const { token } = await c.req.json<{ token: string }>();

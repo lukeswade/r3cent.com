@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.r3cent.com/api';
 
 interface FetchOptions extends RequestInit {
   json?: unknown;

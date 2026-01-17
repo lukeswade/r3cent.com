@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env, Variables } from '../types';
-import type { ItemCard, ChannelBlock, NowResponse } from '@r3cent/shared';
+import type { ItemCard, NowResponse } from '@r3cent/shared';
 import { ItemType, Channel } from '@r3cent/shared';
+import { getValidAccessToken } from '../security/tokens';
+import { syncSpotifyRecentlyPlayed } from '../providers/spotify/recentlyPlayed';
 
 const ITEMS_PER_CHANNEL = 3;
 
@@ -148,32 +150,22 @@ nowRoutes.post('/refresh/:channel', async (c) => {
   const user = c.get('user');
   const channel = c.req.param('channel');
   
-  const validChannels = ['email', 'calendar', 'tunes'];
-  if (!validChannels.includes(channel)) {
+  const providerMap: Record<string, 'google' | 'spotify'> = {
+    email: 'google',
+    calendar: 'google',
+    tunes: 'spotify',
+  };
+  
+  const provider = providerMap[channel];
+  if (!provider) {
     return c.json({ error: 'Invalid channel', code: 'INVALID_CHANNEL' }, 400);
   }
   
-  // Map channel to provider
-  const provider = channel === 'tunes' ? 'spotify' : 'google';
-  
-  // Check if connection exists and get tokens
-  const connection = await c.env.DB.prepare(`
-    SELECT id, status, access_token_encrypted, access_token_iv, access_token_tag,
-           refresh_token_encrypted, refresh_token_iv, refresh_token_tag, expires_at
-    FROM connections WHERE user_id = ? AND provider = ?
-  `)
+  const connection = await c.env.DB.prepare(
+    'SELECT id, status FROM connections WHERE user_id = ? AND provider = ?'
+  )
     .bind(user.id, provider)
-    .first<{
-      id: string;
-      status: string;
-      access_token_encrypted: string;
-      access_token_iv: string;
-      access_token_tag: string;
-      refresh_token_encrypted: string | null;
-      refresh_token_iv: string | null;
-      refresh_token_tag: string | null;
-      expires_at: string;
-    }>();
+    .first<{ id: string; status: string }>();
   
   if (!connection || connection.status !== 'connected') {
     return c.json({ 
@@ -183,89 +175,69 @@ nowRoutes.post('/refresh/:channel', async (c) => {
   }
   
   try {
-    // Decrypt access token
-    const { decryptToken } = await import('../security/crypto');
-    let accessToken = await decryptToken(
-      {
-        ciphertext: connection.access_token_encrypted,
-        iv: connection.access_token_iv,
-        tag: connection.access_token_tag,
-      },
-      c.env.TOKEN_ENC_KEY
-    );
+    const now = new Date().toISOString();
     
-    // Check if token is expired and refresh if needed
-    if (new Date(connection.expires_at) < new Date()) {
-      if (!connection.refresh_token_encrypted) {
-        return c.json({ error: 'Token expired and no refresh token', code: 'TOKEN_EXPIRED' }, 401);
+    if (channel === 'tunes') {
+      const result = await syncSpotifyRecentlyPlayed(c.env, c.env.DB, user.id);
+      
+      if (result.errors.length > 0) {
+        await c.env.DB.prepare(
+          "UPDATE connections SET status = 'error', error_message = ? WHERE id = ?"
+        )
+          .bind(result.errors.join('; '), connection.id)
+          .run();
+        
+        return c.json({ 
+          error: 'Sync failed', 
+          code: 'SYNC_ERROR',
+          details: result.errors,
+        }, 500);
       }
       
-      const { refreshGoogleToken } = await import('../security/tokens');
-      const refreshToken = await decryptToken(
-        {
-          ciphertext: connection.refresh_token_encrypted,
-          iv: connection.refresh_token_iv!,
-          tag: connection.refresh_token_tag!,
-        },
-        c.env.TOKEN_ENC_KEY
-      );
-      
-      const newTokens = await refreshGoogleToken(
-        refreshToken,
-        c.env.GOOGLE_CLIENT_ID,
-        c.env.GOOGLE_CLIENT_SECRET
-      );
-      
-      // Update stored tokens
-      const { encryptToken } = await import('../security/crypto');
-      const encryptedAccess = await encryptToken(newTokens.access_token, c.env.TOKEN_ENC_KEY);
-      const expiresAt = new Date(Date.now() + newTokens.expires_in * 1000).toISOString();
-      
-      await c.env.DB.prepare(`
-        UPDATE connections SET
-          access_token_encrypted = ?,
-          access_token_iv = ?,
-          access_token_tag = ?,
-          expires_at = ?,
-          updated_at = ?
-        WHERE id = ?
-      `)
-        .bind(
-          encryptedAccess.ciphertext,
-          encryptedAccess.iv,
-          encryptedAccess.tag,
-          expiresAt,
-          new Date().toISOString(),
-          connection.id
-        )
+      await c.env.DB.prepare(
+        "UPDATE connections SET status = 'connected', error_message = NULL WHERE id = ?"
+      )
+        .bind(connection.id)
         .run();
       
-      accessToken = newTokens.access_token;
+      return c.json({ 
+        message: 'Sync complete',
+        channel,
+        itemsAdded: result.synced,
+      });
     }
     
-    // Sync based on channel
+    const accessToken = await getValidAccessToken(c.env, c.env.DB, user.id, 'google');
+    if (!accessToken) {
+      return c.json({ error: 'Unable to refresh Google token', code: 'TOKEN_UNAVAILABLE' }, 401);
+    }
+    
     let itemsAdded = 0;
-    const now = new Date().toISOString();
     
     if (channel === 'email') {
       const { syncGmail } = await import('../providers/google/gmail');
       const emails = await syncGmail(accessToken);
       
       for (const email of emails) {
+        const toList = Array.isArray(email.to)
+          ? email.to
+          : (email.to ? email.to.split(',').map((t) => t.trim()).filter(Boolean) : []);
+        
         await c.env.DB.prepare(`
-          INSERT OR REPLACE INTO items (id, user_id, type, ts, title, content, source_id, status, meta, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT OR REPLACE INTO items (id, user_id, type, source_provider, ts, title, content, source_id, status, meta, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
           .bind(
             crypto.randomUUID(),
             user.id,
             email.type,
+            'google',
             email.date,
             email.subject,
             email.snippet,
             email.id,
-            JSON.stringify({ deleted: false, pinned: false, ignored: false }),
-            JSON.stringify({ from: email.from, to: email.to }),
+            JSON.stringify({ deleted: false, pinned: false, ignored: false, tasked: false }),
+            JSON.stringify({ from: email.from, to: toList, snippet: email.snippet }),
             now
           )
           .run();
@@ -276,20 +248,28 @@ nowRoutes.post('/refresh/:channel', async (c) => {
       const events = await syncCalendar(accessToken);
       
       for (const event of events) {
+        const isAllDay = !event.start.includes('T') && !event.end.includes('T');
         await c.env.DB.prepare(`
-          INSERT OR REPLACE INTO items (id, user_id, type, ts, title, content, source_id, status, meta, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT OR REPLACE INTO items (id, user_id, type, source_provider, ts, title, content, source_id, status, meta, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
           .bind(
             crypto.randomUUID(),
             user.id,
             event.type,
+            'google',
             event.start,
             event.summary,
             event.description || '',
             event.id,
-            JSON.stringify({ deleted: false, pinned: false, ignored: false }),
-            JSON.stringify({ location: event.location, end: event.end, attendees: event.attendees }),
+            JSON.stringify({ deleted: false, pinned: false, ignored: false, tasked: false }),
+            JSON.stringify({
+              location: event.location,
+              end: event.end,
+              attendees: event.attendees,
+              start: event.start,
+              isAllDay,
+            }),
             now
           )
           .run();
@@ -297,16 +277,11 @@ nowRoutes.post('/refresh/:channel', async (c) => {
       }
     }
     
-    // Update last sync time
-    await c.env.DB.prepare('UPDATE connections SET last_sync_at = ? WHERE id = ?')
-      .bind(now, connection.id)
+    await c.env.DB.prepare('UPDATE connections SET last_sync_at = ?, status = ?, error_message = NULL WHERE id = ?')
+      .bind(now, 'connected', connection.id)
       .run();
     
-    return c.json({ 
-      message: 'Sync complete',
-      channel,
-      itemsAdded,
-    });
+    return c.json({ message: 'Sync complete', channel, itemsAdded });
   } catch (err) {
     console.error('Sync error:', err);
     return c.json({ 

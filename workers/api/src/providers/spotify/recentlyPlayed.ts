@@ -1,5 +1,5 @@
-import type { Env } from '../types';
-import { getValidAccessToken } from '../security/tokens';
+import type { Env } from '../../types';
+import { getValidAccessToken } from '../../security/tokens';
 import { ItemType, SourceProvider } from '@r3cent/shared';
 
 // Spotify sync - fetch recently played tracks

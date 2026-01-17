@@ -13,46 +13,57 @@ export function Connections() {
   const spotifyConnection = connections.find((c) => c.provider === 'spotify');
   
   return (
-    <div className="p-4">
+    <div className="p-4 lg:p-8">
       {/* Header */}
-      <header className="py-4">
-        <Link to="/settings" className="text-slate-400 hover:text-slate-200 text-sm mb-2 block">
-          ← Settings
+      <header className="py-4 lg:py-6">
+        <Link to="/settings" className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-200 text-sm mb-3 group">
+          <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          Settings
         </Link>
-        <h1 className="text-2xl font-bold">Connections</h1>
-        <p className="text-slate-400 text-sm">Connect your accounts to sync data</p>
+        <h1 className="text-2xl lg:text-3xl font-bold">Connections</h1>
+        <p className="text-slate-400 text-sm lg:text-base">Connect your accounts to sync data</p>
       </header>
       
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Google */}
-          <ConnectionCard
-            provider="google"
-            name="Google"
-            description="Gmail & Calendar"
-            icon={<GoogleIcon />}
-            connection={googleConnection}
-            onConnect={() => connect('google')}
-            onDisconnect={() => disconnect('google')}
-          />
-          
-          {/* Spotify */}
-          <ConnectionCard
-            provider="spotify"
-            name="Spotify"
-            description="Recently played tracks"
-            icon={<SpotifyIcon />}
-            connection={spotifyConnection}
-            onConnect={() => connect('spotify')}
-            onDisconnect={() => disconnect('spotify')}
-          />
-        </div>
-      )}
+      <div className="max-w-xl">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Google */}
+            <ConnectionCard
+              provider="google"
+              name="Google"
+              description="Gmail & Calendar"
+              icon={<GoogleIcon />}
+              connection={googleConnection}
+              onConnect={() => connect('google')}
+              onDisconnect={() => disconnect('google')}
+            />
+            
+            {/* Spotify */}
+            <ConnectionCard
+              provider="spotify"
+              name="Spotify"
+              description="Recently played tracks"
+              icon={<SpotifyIcon />}
+              connection={spotifyConnection}
+              onConnect={() => connect('spotify')}
+              onDisconnect={() => disconnect('spotify')}
+            />
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function ArrowLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+    </svg>
   );
 }
 
@@ -84,36 +95,36 @@ function ConnectionCard({
   const hasError = connection?.status === 'error';
   
   return (
-    <div className="bg-slate-800/50 rounded-xl p-4">
+    <div className="channel-card p-4">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center">
             {icon}
           </div>
           <div>
-            <h3 className="font-medium text-slate-200">{name}</h3>
+            <h3 className="font-semibold text-slate-200">{name}</h3>
             <p className="text-sm text-slate-400">{description}</p>
           </div>
         </div>
         
         {isConnected ? (
-          <span className="text-xs bg-green-900/30 text-green-400 px-2 py-1 rounded-full">
+          <span className="text-xs font-medium bg-green-900/30 text-green-400 px-2.5 py-1 rounded-full">
             Connected
           </span>
         ) : hasError ? (
-          <span className="text-xs bg-red-900/30 text-red-400 px-2 py-1 rounded-full">
+          <span className="text-xs font-medium bg-red-900/30 text-red-400 px-2.5 py-1 rounded-full">
             Error
           </span>
         ) : null}
       </div>
       
       {isConnected && (
-        <div className="mb-4 text-sm text-slate-500">
+        <div className="mb-4 text-sm text-slate-500 space-y-1">
           {connection.lastSyncAt && (
             <p>Last synced: {new Date(connection.lastSyncAt).toLocaleString()}</p>
           )}
           {connection.scopes.length > 0 && (
-            <p className="mt-1">
+            <p>
               Scopes: {connection.scopes.length} granted
             </p>
           )}

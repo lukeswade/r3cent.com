@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { NowResponse, MeResponse, ConnectionInfo } from '@r3cent/shared';
 
-const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.r3cent.com/api';
 
 // ─────────────────────────────────────────────────────────────
 // Auth Store
@@ -53,6 +53,57 @@ export const useAuthStore = create<AuthState>()(
 
 // Initialize auth check on load
 useAuthStore.getState().checkAuth();
+
+// ─────────────────────────────────────────────────────────────
+// Theme Store
+// ─────────────────────────────────────────────────────────────
+type Theme = 'light' | 'dark';
+
+interface ThemeState {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
+}
+
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set, get) => ({
+      theme: 'dark',
+      
+      setTheme: (theme: Theme) => {
+        set({ theme });
+        applyTheme(theme);
+      },
+      
+      toggleTheme: () => {
+        const newTheme = get().theme === 'dark' ? 'light' : 'dark';
+        set({ theme: newTheme });
+        applyTheme(newTheme);
+      },
+    }),
+    {
+      name: 'r3cent-theme',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          applyTheme(state.theme);
+        }
+      },
+    }
+  )
+);
+
+function applyTheme(theme: Theme) {
+  if (theme === 'light') {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+  } else {
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('dark');
+  }
+}
+
+// Initialize theme on load
+applyTheme(useThemeStore.getState().theme);
 
 // ─────────────────────────────────────────────────────────────
 // Now Store
