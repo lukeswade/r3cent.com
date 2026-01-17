@@ -332,7 +332,19 @@ async function generateAnswer(
     return `[${i + 1}] ${typeLabel} (${date})${details ? ` - ${details}` : ''}\n${content}`;
   }).join('\n\n');
 
-  const systemPrompt = buildSystemPrompt(query);
+  const systemPrompt = `You are r3cent, a proactive personal assistant for a user's recent digital activity (thoughts, notes, emails, calendar events, and music).
+
+Guidelines:
+- Be crisp and helpful. Prioritize clarity over verbosity.
+- Only use information present in the context. Never invent details.
+- Cite sources using [1], [2], etc. for any specific claims.
+- If the question implies a task or follow-up, surface action items.
+- If key info is missing, say what's missing and ask a brief clarifying question.
+- Output format:
+  Answer: 2-5 sentences.
+  Key items: 2-4 bullets with citations.
+  Action items: bullets or "None."
+  Open questions: 1-2 bullets if needed.`;
 
   const userPrompt = `User: ${userName}
 Query: ${query}
@@ -512,19 +524,7 @@ function scoreItem(
   const ageDays = Math.max(0, (now - ts) / (1000 * 60 * 60 * 24));
   const recencyScore = Math.max(0, 1 - ageDays / 30);
 
-  const meta = item.meta || {};
-  const metaText = [
-    meta.from,
-    meta.to,
-    meta.location,
-    meta.artist,
-    meta.album,
-    meta.contextType,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-  const text = `${item.title ?? ''} ${item.content ?? ''} ${metaText}`.toLowerCase();
+  const text = `${item.title ?? ''} ${item.content ?? ''}`.toLowerCase();
   const keywordHits = context.keywords.reduce((total, keyword) => (
     text.includes(keyword) ? total + 1 : total
   ), 0);
@@ -539,16 +539,9 @@ function scoreItem(
       ? 1.2
       : 0;
 
-  const channelSignal =
-    (context.wantsEmail && (meta.from || meta.to)) ||
-    (context.wantsCalendar && (meta.location || meta.end)) ||
-    (context.wantsTunes && (meta.artist || meta.album || meta.contextType))
-      ? 0.6
-      : 0;
-
   const recentBonus = context.wantsRecent ? 0.4 : 0;
 
-  return keywordHits * 2 + typeBonus + channelSignal + recencyScore + recentBonus;
+  return keywordHits * 2 + typeBonus + recencyScore + recentBonus;
 }
 
 function buildSourceReason(item: RetrievedItem, keywords: string[], query: string): string {
@@ -575,34 +568,4 @@ function buildSourceReason(item: RetrievedItem, keywords: string[], query: strin
   }
 
   return 'Recent activity';
-}
-
-function buildSystemPrompt(query: string): string {
-  const normalized = normalizeQuery(query);
-  const wordCount = normalized.split(' ').filter(Boolean).length;
-  const broadIntent = /summarize|summary|overview|recap|what.*been|anything new|recent/i.test(normalized);
-  const shouldUseStructured = broadIntent || wordCount >= 8;
-
-  if (shouldUseStructured) {
-    return `You are r3cent, a proactive personal assistant for a user's recent digital activity (thoughts, notes, emails, calendar events, and music).
-
-Guidelines:
-- Be crisp and helpful. Prioritize clarity over verbosity.
-- Only use information present in the context. Never invent details.
-- Cite sources using [1], [2], etc. for any specific claims.
-- If the question implies a task or follow-up, surface action items.
-- If key info is missing, say what's missing and ask a brief clarifying question.
-- Output format:
-  Answer: 2-5 sentences.
-  Key items: 2-4 bullets with citations.
-  Action items: bullets or "None."
-  Open questions: 1-2 bullets if needed.`;
-  }
-
-  return `You are r3cent, a concise assistant for a user's recent activity.
-
-Guidelines:
-- Answer in 2-3 sentences.
-- Cite sources using [1], [2] for specific claims.
-- If information is missing, ask a single clarifying question.`;
 }

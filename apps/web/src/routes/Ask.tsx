@@ -78,8 +78,8 @@ export function Ask() {
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
       {/* Header */}
-      <header className="page-header px-4 border-b dark:border-slate-800/50 border-slate-200">
-        <div className="page-shell max-w-3xl">
+      <header className="page-header px-4 border-b border-slate-800/50">
+        <div className="page-shell">
           <h1 className="text-xl font-bold">Ask</h1>
           <p className="text-slate-400 text-sm">
             Ask questions about your recent activity and get cited answers.
@@ -89,7 +89,7 @@ export function Ask() {
       
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="page-shell max-w-3xl space-y-4">
+        <div className="page-shell space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-12">
             <p className="text-slate-400 mb-6">
@@ -100,7 +100,7 @@ export function Ask() {
                 <button
                   key={suggestion}
                   onClick={() => handleQuickAsk(suggestion)}
-                  className="text-sm px-3 py-2 rounded-xl transition-colors bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:text-slate-300"
+                  className="text-sm px-3 py-2 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-colors text-slate-300"
                 >
                   {suggestion}
                 </button>
@@ -130,8 +130,8 @@ export function Ask() {
       </div>
       
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t dark:border-slate-800/50 border-slate-200">
-        <div className="page-shell max-w-3xl">
+      <form onSubmit={handleSubmit} className="p-4 border-t border-slate-800/50">
+        <div className="page-shell">
           <div className="flex gap-2">
             <input
               type="text"
@@ -182,7 +182,7 @@ function MessageBubble({
               <button
                 key={followup}
                 onClick={() => onFollowup(followup)}
-                className="text-xs px-3 py-1.5 rounded-full transition-colors dark:bg-slate-700/40 dark:hover:bg-slate-700/70 dark:text-slate-200 bg-slate-200 hover:bg-slate-300 text-slate-700"
+                className="text-xs px-3 py-1.5 rounded-full bg-slate-700/40 hover:bg-slate-700/70 text-slate-200 transition-colors"
               >
                 {followup}
               </button>

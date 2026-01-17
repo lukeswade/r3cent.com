@@ -116,8 +116,8 @@ export function Capture() {
             {isRecording ? 'Listening...' : 'Tap to start recording'}
           </p>
 
-          <div className="w-full section-card p-4 mb-6 text-sm text-slate-600 dark:text-slate-400 space-y-2">
-            <p className="text-slate-800 dark:text-slate-300 font-medium">Tips for better transcription</p>
+          <div className="w-full section-card p-4 mb-6 text-sm text-slate-400 space-y-2">
+            <p className="text-slate-300 font-medium">Tips for better transcription</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Speak clearly and pause between ideas.</li>
               <li>Include names or keywords you want to search later.</li>

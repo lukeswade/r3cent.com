@@ -38,9 +38,7 @@ export function Connections() {
         {(errorMessage || connectedParam) && (
           <div
             className={`mb-4 rounded-xl px-4 py-3 text-sm ${
-              errorMessage
-                ? 'dark:bg-red-900/30 bg-red-100 text-red-700 dark:text-red-300'
-                : 'dark:bg-emerald-900/30 bg-emerald-100 text-emerald-700 dark:text-emerald-300'
+              errorMessage ? 'bg-red-900/30 text-red-300' : 'bg-emerald-900/30 text-emerald-300'
             }`}
           >
             {errorMessage || `Connected ${connectedParam} successfully.`}

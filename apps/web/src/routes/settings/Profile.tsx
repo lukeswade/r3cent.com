@@ -20,27 +20,27 @@ export function Profile() {
         <div className="space-y-4">
           <div className="section-card p-4">
             <label className="text-sm text-slate-400 block mb-1">Email</label>
-            <p className="text-slate-800 dark:text-slate-200">{user?.email}</p>
+            <p className="text-slate-200">{user?.email}</p>
           </div>
         
           <div className="section-card p-4">
             <label className="text-sm text-slate-400 block mb-1">Display Name</label>
-            <p className="text-slate-800 dark:text-slate-200">{user?.displayName || 'Not set'}</p>
+            <p className="text-slate-200">{user?.displayName || 'Not set'}</p>
           </div>
         
           <div className="section-card p-4">
             <label className="text-sm text-slate-400 block mb-1">Plan</label>
-            <p className="text-slate-800 dark:text-slate-200 capitalize">{user?.plan || 'Free'}</p>
+            <p className="text-slate-200 capitalize">{user?.plan || 'Free'}</p>
           </div>
         
           <div className="section-card p-4">
             <label className="text-sm text-slate-400 block mb-1">Timezone</label>
-            <p className="text-slate-800 dark:text-slate-200">{user?.timeZone || 'UTC'}</p>
+            <p className="text-slate-200">{user?.timeZone || 'UTC'}</p>
           </div>
         
           <div className="section-card p-4">
             <label className="text-sm text-slate-400 block mb-1">Language</label>
-            <p className="text-slate-800 dark:text-slate-200">{user?.locale || 'en-US'}</p>
+            <p className="text-slate-200">{user?.locale || 'en-US'}</p>
           </div>
         </div>
       

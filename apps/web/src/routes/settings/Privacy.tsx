@@ -48,21 +48,21 @@ export function Privacy() {
         {/* Data storage info */}
         <section className="mb-8">
           <h2 className="text-lg font-semibold mb-4">How we handle your data</h2>
-          <div className="section-card p-4 space-y-3 text-sm text-slate-600 dark:text-slate-400">
+          <div className="section-card p-4 space-y-3 text-sm text-slate-400">
             <p>
-              <strong className="text-slate-800 dark:text-slate-200">Gmail:</strong> We only store email headers (from, to, subject, date) and the first few lines snippet. We never store full email bodies.
+              <strong className="text-slate-200">Gmail:</strong> We only store email headers (from, to, subject, date) and the first few lines snippet. We never store full email bodies.
             </p>
             <p>
-              <strong className="text-slate-800 dark:text-slate-200">Calendar:</strong> We store event titles, times, locations, and meeting links. Event descriptions are truncated.
+              <strong className="text-slate-200">Calendar:</strong> We store event titles, times, locations, and meeting links. Event descriptions are truncated.
             </p>
             <p>
-              <strong className="text-slate-800 dark:text-slate-200">Spotify:</strong> We store track metadata only (song name, artist, album, play time).
+              <strong className="text-slate-200">Spotify:</strong> We store track metadata only (song name, artist, album, play time).
             </p>
             <p>
-              <strong className="text-slate-800 dark:text-slate-200">Voice:</strong> Transcripts are stored. Audio is not stored by default.
+              <strong className="text-slate-200">Voice:</strong> Transcripts are stored. Audio is not stored by default.
             </p>
             <p>
-              <strong className="text-slate-800 dark:text-slate-200">Encryption:</strong> All OAuth tokens are encrypted at rest using AES-256-GCM.
+              <strong className="text-slate-200">Encryption:</strong> All OAuth tokens are encrypted at rest using AES-256-GCM.
             </p>
           </div>
         </section>
