@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useConnectionsStore } from '@/lib/store';
 
 export function Connections() {
   const { connections, isLoading, fetchConnections, connect, disconnect } = useConnectionsStore();
+  const [searchParams] = useSearchParams();
   
   useEffect(() => {
     fetchConnections();
@@ -11,20 +12,49 @@ export function Connections() {
   
   const googleConnection = connections.find((c) => c.provider === 'google');
   const spotifyConnection = connections.find((c) => c.provider === 'spotify');
+  const errorParam = searchParams.get('error');
+  const connectedParam = searchParams.get('connected');
+  const errorMessages: Record<string, string> = {
+    invalid_state: 'The connection could not be verified. Please try again.',
+    token_exchange_failed: 'The provider declined the connection. Double-check client credentials.',
+    session_lost: 'Your session expired during the connection flow. Try again.',
+    session_expired: 'Your session expired. Please sign in again.',
+  };
+  const errorMessage = errorParam ? errorMessages[errorParam] || 'Connection failed. Please try again.' : null;
   
   return (
     <div className="p-4 lg:p-8">
-      {/* Header */}
-      <header className="py-4 lg:py-6">
-        <Link to="/settings" className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-200 text-sm mb-3 group">
-          <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          Settings
-        </Link>
-        <h1 className="text-2xl lg:text-3xl font-bold">Connections</h1>
-        <p className="text-slate-400 text-sm lg:text-base">Connect your accounts to sync data</p>
-      </header>
+      <div className="page-shell max-w-3xl">
+        {/* Header */}
+        <header className="page-header lg:py-6">
+          <Link to="/settings" className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-200 text-sm mb-3 group">
+            <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            Settings
+          </Link>
+          <h1 className="text-2xl lg:text-3xl font-bold">Connections</h1>
+          <p className="text-slate-400 text-sm lg:text-base">Connect your accounts to sync data</p>
+        </header>
+
+        {(errorMessage || connectedParam) && (
+          <div
+            className={`mb-4 rounded-xl px-4 py-3 text-sm ${
+              errorMessage ? 'bg-red-900/30 text-red-300' : 'bg-emerald-900/30 text-emerald-300'
+            }`}
+          >
+            {errorMessage || `Connected ${connectedParam} successfully.`}
+          </div>
+        )}
+
+        <div className="section-card p-4 mb-6 text-sm text-slate-400 space-y-2">
+          <p className="text-slate-300 font-medium">How connections work</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>We request read-only access for the scopes shown by the provider.</li>
+            <li>Sync runs in the background and updates your Now dashboard.</li>
+            <li>You can disconnect anytime from this page.</li>
+          </ul>
+        </div>
       
-      <div className="max-w-xl">
+        <div className="max-w-xl">
         {isLoading ? (
           <div className="flex justify-center py-8">
             <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -54,6 +84,7 @@ export function Connections() {
             />
           </div>
         )}
+        </div>
       </div>
     </div>
   );

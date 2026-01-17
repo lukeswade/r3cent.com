@@ -8,12 +8,16 @@ export function Settings() {
   
   return (
     <div className="p-4 lg:p-8">
-      {/* Header */}
-      <header className="py-4 lg:py-6">
-        <h1 className="text-2xl lg:text-3xl font-bold">Settings</h1>
-      </header>
+      <div className="page-shell max-w-3xl">
+        {/* Header */}
+        <header className="page-header lg:py-6">
+          <h1 className="text-2xl lg:text-3xl font-bold">Settings</h1>
+          <p className="text-slate-400 text-sm lg:text-base">
+            Manage your profile, connections, and preferences.
+          </p>
+        </header>
       
-      <div className="max-w-xl">
+        <div className="max-w-xl">
         {/* User info */}
         <div className="channel-card p-4 mb-6">
           <div className="flex items-center gap-4">
@@ -68,6 +72,7 @@ export function Settings() {
         <p className="mt-8 text-center text-xs text-slate-500">
           r3cent v0.1.0
         </p>
+        </div>
       </div>
     </div>
   );

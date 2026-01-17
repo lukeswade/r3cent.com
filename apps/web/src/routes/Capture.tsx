@@ -63,12 +63,15 @@ export function Capture() {
   };
   
   return (
-    <div className="p-4">
-      {/* Header */}
-      <header className="py-4">
-        <h1 className="text-2xl font-bold">Capture</h1>
-        <p className="text-slate-400 text-sm">Record thoughts or jot down notes</p>
-      </header>
+    <div className="p-4 lg:p-8">
+      <div className="page-shell max-w-2xl">
+        {/* Header */}
+        <header className="page-header">
+          <h1 className="text-2xl lg:text-3xl font-bold">Capture</h1>
+          <p className="text-slate-400 text-sm">
+            Capture voice thoughts or jot quick notes. Everything is saved to your timeline.
+          </p>
+        </header>
       
       {/* Tab switcher */}
       <div className="flex gap-2 mb-6">
@@ -112,6 +115,15 @@ export function Capture() {
           <p className="text-slate-400 mb-6">
             {isRecording ? 'Listening...' : 'Tap to start recording'}
           </p>
+
+          <div className="w-full section-card p-4 mb-6 text-sm text-slate-400 space-y-2">
+            <p className="text-slate-300 font-medium">Tips for better transcription</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Speak clearly and pause between ideas.</li>
+              <li>Include names or keywords you want to search later.</li>
+              <li>Tap stop when you’re done, then save.</li>
+            </ul>
+          </div>
           
           {!isSupported && (
             <p className="text-sm text-red-400 mb-4">
@@ -160,6 +172,7 @@ export function Capture() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

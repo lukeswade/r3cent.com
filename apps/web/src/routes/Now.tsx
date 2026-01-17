@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useNowStore } from '@/lib/store';
 import { ChannelCard } from '@/components/ChannelCard';
 import { apiClient } from '@/lib/api';
@@ -18,6 +19,20 @@ export function Now() {
   useEffect(() => {
     fetchNow();
   }, [fetchNow]);
+
+  const lastUpdated = data
+    ? [
+        data.channels.email.lastSyncAt,
+        data.channels.calendar.lastSyncAt,
+        data.channels.tunes.lastSyncAt,
+        ...Object.values(data.channels).flatMap((channel) =>
+          channel.items.map((item) => item.ts)
+        ),
+      ]
+        .filter(Boolean)
+        .map((ts) => new Date(ts as string).getTime())
+        .reduce((max, ts) => Math.max(max, ts), 0)
+    : 0;
   
   const handleItemAction = async (itemId: string, action: 'pin' | 'task' | 'ignore') => {
     try {
@@ -53,14 +68,20 @@ export function Now() {
   
   return (
     <div className="p-4 lg:p-8">
+      <div className="page-shell">
       {/* Header */}
-      <header className="py-4 lg:py-6 flex items-center justify-between">
+      <header className="page-header lg:py-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">Now</h1>
           <p className="text-slate-400 text-sm lg:text-base">Your recent activity at a glance</p>
         </div>
-        <div className="hidden lg:flex items-center gap-2 text-slate-500 text-sm">
-          <span>Last updated: just now</span>
+        <div className="hidden lg:flex items-center gap-4 text-slate-500 text-sm">
+          {lastUpdated > 0 && (
+            <span>Last updated: {new Date(lastUpdated).toLocaleString()}</span>
+          )}
+          <Link to="/ask" className="btn-secondary px-3 py-1.5 text-xs">
+            Ask AI
+          </Link>
         </div>
       </header>
       
@@ -94,6 +115,7 @@ export function Now() {
           </a>
         </div>
       )}
+      </div>
     </div>
   );
 }
