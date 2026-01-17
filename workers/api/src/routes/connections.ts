@@ -194,6 +194,28 @@ connectionsRoutes.post('/google/disconnect', async (c) => {
 
 // POST /api/connections/spotify/start - Initiate Spotify OAuth
 connectionsRoutes.post('/spotify/start', async (c) => {
+  const missing = [];
+  if (!c.env.SPOTIFY_CLIENT_ID) {
+    missing.push('SPOTIFY_CLIENT_ID');
+  }
+  if (!c.env.SPOTIFY_CLIENT_SECRET) {
+    missing.push('SPOTIFY_CLIENT_SECRET');
+  }
+  if (!c.env.API_URL) {
+    missing.push('API_URL');
+  }
+  if (missing.length > 0) {
+    console.error('Spotify connection misconfigured:', missing.join(', '));
+    return c.json(
+      {
+        error: 'spotify_not_configured',
+        message: 'Spotify connection is missing required environment variables.',
+        missing,
+      },
+      500
+    );
+  }
+
   const scopes = ['user-read-recently-played', 'user-read-playback-state', 'user-top-read'];
   
   const state = crypto.randomUUID();

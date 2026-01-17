@@ -7,6 +7,7 @@ interface Message {
   role: 'user' | 'assistant';
   text: string;
   sources?: AskResponse['sources'];
+  followups?: string[];
 }
 
 export function Ask() {
@@ -24,14 +25,13 @@ export function Ask() {
     scrollToBottom();
   }, [messages]);
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    
+  const sendQuery = async (text: string) => {
+    if (!text.trim() || isLoading) return;
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      text: input.trim(),
+      text: text.trim(),
     };
     
     setMessages((prev) => [...prev, userMessage]);
@@ -50,6 +50,7 @@ export function Ask() {
         role: 'assistant',
         text: response.answer,
         sources: response.sources,
+        followups: response.followups,
       };
       
       setMessages((prev) => [...prev, assistantMessage]);
@@ -64,17 +65,31 @@ export function Ask() {
       setIsLoading(false);
     }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendQuery(input);
+  };
+
+  const handleQuickAsk = async (text: string) => {
+    await sendQuery(text);
+  };
   
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
       {/* Header */}
-      <header className="p-4 border-b border-slate-800/50">
-        <h1 className="text-xl font-bold">Ask</h1>
-        <p className="text-slate-400 text-sm">Ask questions about your recent activity</p>
+      <header className="page-header px-4 border-b border-slate-800/50">
+        <div className="page-shell">
+          <h1 className="text-xl font-bold">Ask</h1>
+          <p className="text-slate-400 text-sm">
+            Ask questions about your recent activity and get cited answers.
+          </p>
+        </div>
       </header>
       
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="page-shell space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-12">
             <p className="text-slate-400 mb-6">
@@ -84,7 +99,7 @@ export function Ask() {
               {SUGGESTIONS.map((suggestion) => (
                 <button
                   key={suggestion}
-                  onClick={() => setInput(suggestion)}
+                  onClick={() => handleQuickAsk(suggestion)}
                   className="text-sm px-3 py-2 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-colors text-slate-300"
                 >
                   {suggestion}
@@ -95,7 +110,11 @@ export function Ask() {
         )}
         
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            onFollowup={(followup) => handleQuickAsk(followup)}
+          />
         ))}
         
         {isLoading && (
@@ -107,33 +126,42 @@ export function Ask() {
         )}
         
         <div ref={messagesEndRef} />
+        </div>
       </div>
       
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t border-slate-800/50">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="What do you want to know?"
-            className="input flex-1"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <SendIcon className="w-5 h-5" />
-          </button>
+        <div className="page-shell">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="What do you want to know?"
+              className="input flex-1"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className="btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <SendIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </form>
     </div>
   );
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({
+  message,
+  onFollowup,
+}: {
+  message: Message;
+  onFollowup: (text: string) => void;
+}) {
   const [showSources, setShowSources] = useState(false);
   const isUser = message.role === 'user';
   
@@ -148,6 +176,20 @@ function MessageBubble({ message }: { message: Message }) {
       >
         <p className="whitespace-pre-wrap">{message.text}</p>
         
+        {message.followups && message.followups.length > 0 && !isUser && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {message.followups.map((followup) => (
+              <button
+                key={followup}
+                onClick={() => onFollowup(followup)}
+                className="text-xs px-3 py-1.5 rounded-full bg-slate-700/40 hover:bg-slate-700/70 text-slate-200 transition-colors"
+              >
+                {followup}
+              </button>
+            ))}
+          </div>
+        )}
+
         {message.sources && message.sources.length > 0 && (
           <div className="mt-3 pt-3 border-t border-slate-700/50">
             <button
